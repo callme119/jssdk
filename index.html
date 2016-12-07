@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-hans">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <script type="text/javascript" src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+    <script type="text/javascript" src="bower_components/angular/angular.min.js"></script>
+</head>
+
+<body ng-app="wechat" ng-controller="jssdk">
+    <button ng-click="chooseImage()" style="font-size:70px;">选择图片</button>
+    <img ng-src="{{imgUrl}}" />
+    <h1>
+    {{imgUrl}}
+    </h1>
+</body>
+<script type="text/javascript">
+var app = angular.module('wechat', []);
+app.config(function($compileProvider){
+    $compileProvider.imgSrcSanitizationWhitelist(/^\s*(wxlocalresource|https?|ftp|mailto|chrome-extension):/);
+});
+
+// 获取#前的URL
+var url = window.location.href.replace(window.location.hash, '');
+
+// 定制配置信息
+var jssdkConfig = {
+    jsApiList: ['chooseImage'],
+    debug: true,
+    appId: '',
+};
+
+// 控制器
+app.controller('jssdk', function($scope, $http) {
+    // 发送请求，获取配置信息
+    $http({
+        url: 'sample.php?url=' + encodeURIComponent(url),
+        method: 'GET',
+    }).then(function(response, status) {
+        // 返回200说明请求正常，则调用系统初始化函数
+        if (response.status === 200) {
+            init(response.data);
+        } else {
+            alert('数据返回错误:' + response.status);
+        }
+    }, function(response) {
+        alert('数据返回错误:' + response.status);
+    });
+
+    // 点击上传按钮
+    $scope.chooseImage = function() {
+        wx.chooseImage({
+            count: 1, // 默认9
+            sizeType: ['original', 'compressed'], // 可以指定是原图还是压缩图，默认二者都有
+            sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
+            success: function(res) {
+                // 取数组中的第一个
+                $scope.imgUrl = res.localIds[0]; // 返回选定照片的本地ID列表，localId可以作为img标签的src属性显示图片
+
+                // 由于WX存在异步处理，需要使用以下语句立即更新V层
+                $scope.$apply() 
+            }
+        });
+        return;
+    };
+
+    $scope.imgUrl = "image/wechat.png";
+
+    // 系统初始化
+    var init = function(config) {
+        jssdkConfig.appId = config.appId;
+        jssdkConfig.nonceStr = config.nonceStr;
+        jssdkConfig.signature = config.signature;
+        jssdkConfig.timestamp = config.timestamp;
+        wx.config(jssdkConfig); // 配置信息
+    }
+
+});
+</script>
+
+</html>
